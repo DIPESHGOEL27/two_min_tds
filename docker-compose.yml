@@ -1,0 +1,62 @@
+version: '3.8'
+
+services:
+  # Streamlit UI - Main entry point
+  streamlit:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: tds-streamlit
+    ports:
+      - "8501:8501"
+    volumes:
+      - ./uploads:/app/uploads
+      - ./output:/app/output
+      - ./logs:/app/logs
+      - "./TDS Challans for Testing:/app/sample_pdfs:ro"
+    environment:
+      - TDS_APP_UPLOADS_DIR=/app/uploads
+      - TDS_APP_OUTPUT_DIR=/app/output
+      - TDS_APP_LOGS_DIR=/app/logs
+      - TDS_EXTRACTION_MIN_ROW_CONFIDENCE=0.85
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8501/_stcore/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  # FastAPI Backend (optional - for API access)
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    container_name: tds-api
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./uploads:/app/uploads
+      - ./output:/app/output
+      - ./logs:/app/logs
+      - "./TDS Challans for Testing:/app/sample_pdfs:ro"
+    environment:
+      - TDS_APP_UPLOADS_DIR=/app/uploads
+      - TDS_APP_OUTPUT_DIR=/app/output
+      - TDS_APP_LOGS_DIR=/app/logs
+      - TDS_APP_API_HOST=0.0.0.0
+      - TDS_APP_API_PORT=8000
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+volumes:
+  uploads:
+  output:
+  logs:
+
+networks:
+  default:
+    name: tds-network

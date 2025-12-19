@@ -1,0 +1,64 @@
+# TDS Challan Processor - Docker Image
+# Multi-stage build for smaller final image
+
+# Stage 1: Build dependencies
+FROM python:3.11-slim as builder
+
+WORKDIR /app
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy and install Python dependencies
+COPY requirements.txt .
+RUN pip wheel --no-cache-dir --no-deps --wheel-dir /app/wheels -r requirements.txt
+
+# Stage 2: Runtime image
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install runtime dependencies for PDF processing and OCR
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    tesseract-ocr \
+    tesseract-ocr-eng \
+    libgl1-mesa-glx \
+    libglib2.0-0 \
+    poppler-utils \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy wheels from builder stage
+COPY --from=builder /app/wheels /wheels
+RUN pip install --no-cache /wheels/*
+
+# Copy application code
+COPY config/ ./config/
+COPY models/ ./models/
+COPY extraction/ ./extraction/
+COPY validation/ ./validation/
+COPY export/ ./export/
+COPY api/ ./api/
+COPY streamlit_app.py .
+
+# Create necessary directories
+RUN mkdir -p uploads output logs
+
+# Environment variables
+ENV PYTHONUNBUFFERED=1
+ENV TDS_APP_UPLOADS_DIR=/app/uploads
+ENV TDS_APP_OUTPUT_DIR=/app/output
+ENV TDS_APP_LOGS_DIR=/app/logs
+
+# Expose ports
+# 8000 - FastAPI backend
+# 8501 - Streamlit UI
+EXPOSE 8000 8501
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8000/health || exit 1
+
+# Default command - run Streamlit
+CMD ["streamlit", "run", "streamlit_app.py", "--server.port=8501", "--server.address=0.0.0.0"]

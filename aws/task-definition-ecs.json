@@ -1,0 +1,132 @@
+{
+  "family": "tds-challan-processor",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "1024",
+  "memory": "2048",
+  "executionRoleArn": "arn:aws:iam::YOUR_ACCOUNT_ID:role/ecsTaskExecutionRole",
+  "taskRoleArn": "arn:aws:iam::YOUR_ACCOUNT_ID:role/ecsTaskRole",
+  "containerDefinitions": [
+    {
+      "name": "streamlit",
+      "image": "YOUR_ACCOUNT_ID.dkr.ecr.YOUR_REGION.amazonaws.com/tds-streamlit:latest",
+      "essential": true,
+      "portMappings": [
+        {
+          "containerPort": 8501,
+          "protocol": "tcp"
+        }
+      ],
+      "environment": [
+        {
+          "name": "TDS_APP_UPLOADS_DIR",
+          "value": "/app/uploads"
+        },
+        {
+          "name": "TDS_APP_OUTPUT_DIR",
+          "value": "/app/output"
+        },
+        {
+          "name": "TDS_APP_LOGS_DIR",
+          "value": "/app/logs"
+        },
+        {
+          "name": "TDS_EXTRACTION_MIN_ROW_CONFIDENCE",
+          "value": "0.85"
+        }
+      ],
+      "mountPoints": [
+        {
+          "sourceVolume": "efs-storage",
+          "containerPath": "/app/uploads"
+        },
+        {
+          "sourceVolume": "efs-storage",
+          "containerPath": "/app/output"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/tds-challan-processor",
+          "awslogs-region": "YOUR_REGION",
+          "awslogs-stream-prefix": "streamlit"
+        }
+      },
+      "healthCheck": {
+        "command": [
+          "CMD-SHELL",
+          "curl -f http://localhost:8501/_stcore/health || exit 1"
+        ],
+        "interval": 30,
+        "timeout": 5,
+        "retries": 3,
+        "startPeriod": 60
+      }
+    },
+    {
+      "name": "api",
+      "image": "YOUR_ACCOUNT_ID.dkr.ecr.YOUR_REGION.amazonaws.com/tds-api:latest",
+      "essential": false,
+      "portMappings": [
+        {
+          "containerPort": 8000,
+          "protocol": "tcp"
+        }
+      ],
+      "environment": [
+        {
+          "name": "TDS_APP_UPLOADS_DIR",
+          "value": "/app/uploads"
+        },
+        {
+          "name": "TDS_APP_OUTPUT_DIR",
+          "value": "/app/output"
+        },
+        {
+          "name": "TDS_APP_LOGS_DIR",
+          "value": "/app/logs"
+        },
+        {
+          "name": "TDS_APP_API_HOST",
+          "value": "0.0.0.0"
+        },
+        {
+          "name": "TDS_APP_API_PORT",
+          "value": "8000"
+        }
+      ],
+      "mountPoints": [
+        {
+          "sourceVolume": "efs-storage",
+          "containerPath": "/app/uploads"
+        },
+        {
+          "sourceVolume": "efs-storage",
+          "containerPath": "/app/output"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/tds-challan-processor",
+          "awslogs-region": "YOUR_REGION",
+          "awslogs-stream-prefix": "api"
+        }
+      }
+    }
+  ],
+  "volumes": [
+    {
+      "name": "efs-storage",
+      "efsVolumeConfiguration": {
+        "fileSystemId": "fs-XXXXXXXX",
+        "transitEncryption": "ENABLED",
+        "authorizationConfig": {
+          "accessPointId": "fsap-XXXXXXXX",
+          "iam": "ENABLED"
+        }
+      }
+    }
+  ]
+}
