@@ -83,7 +83,7 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
-      
+
       - name: Create ECR repositories if they don't exist
         run: |
           # Create Streamlit repository
@@ -93,7 +93,7 @@ jobs:
             --region ${{ env.AWS_REGION }} \
             --image-scanning-configuration scanOnPush=true \
             --encryption-configuration encryptionType=AES256
-          
+
           # Create API repository
           aws ecr describe-repositories --repository-names ${{ env.ECR_API_REPOSITORY }} --region ${{ env.AWS_REGION }} || \
           aws ecr create-repository \

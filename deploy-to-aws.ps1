@@ -49,6 +49,15 @@ function Test-Prerequisites {
         Write-Error "Docker not found. Please install Docker."
         exit 1
     }
+
+    # Ensure Docker daemon is running (Docker Desktop on Windows)
+    try {
+        docker info | Out-Null
+    }
+    catch {
+        Write-Error "Docker is installed but not running. Please start Docker Desktop and retry."
+        exit 1
+    }
     
     # Check AWS credentials
     try {
@@ -141,13 +150,15 @@ function Deploy-CloudFormation {
     $stackName = "tds-challan-processor-$Environment"
     
     # Check if stack exists
-    try {
-        $null = aws cloudformation describe-stacks --stack-name $stackName --region $Region 2>&1
+    $stackExists = aws cloudformation describe-stacks --stack-name $stackName --region $Region 2>&1
+    if ($LASTEXITCODE -eq 0) {
         $action = "update-stack"
+        $waitCommand = "stack-update-complete"
         Write-Info "Updating existing stack: $stackName"
     }
-    catch {
+    else {
         $action = "create-stack"
+        $waitCommand = "stack-create-complete"
         Write-Info "Creating new stack: $stackName"
     }
     
@@ -156,26 +167,40 @@ function Deploy-CloudFormation {
     $vpcId = if ($env:VPC_ID) { $env:VPC_ID } else { $defaultVpc }
     
     $subnets = aws ec2 describe-subnets --filters "Name=vpc-id,Values=$vpcId" --query "Subnets[*].SubnetId" --output text --region $Region
-    $subnetIds = $subnets -replace '\s+', ','
+    # Convert space-separated subnets to comma-separated and ensure we have at least 2
+    $subnetArray = $subnets -split '\s+'
+    if ($subnetArray.Count -lt 2) {
+        Write-Error "Need at least 2 subnets for ALB deployment. Found: $($subnetArray.Count)"
+        exit 1
+    }
+    $subnetIds = $subnetArray -join ','
     
     Write-Info "Using VPC: $vpcId"
     Write-Info "Using Subnets: $subnetIds"
     
-    # Deploy stack
+    # Create a temporary JSON parameters file to avoid PowerShell escaping issues
+    $paramsFile = "cfn-params-temp.json"
+    $params = @(
+        @{ ParameterKey = "VpcId"; ParameterValue = $vpcId },
+        @{ ParameterKey = "SubnetIds"; ParameterValue = $subnetIds },
+        @{ ParameterKey = "StreamlitImageUri"; ParameterValue = "$AccountId.dkr.ecr.$Region.amazonaws.com/tds-streamlit:$Environment" },
+        @{ ParameterKey = "ApiImageUri"; ParameterValue = "$AccountId.dkr.ecr.$Region.amazonaws.com/tds-api:$Environment" }
+    )
+    $params | ConvertTo-Json -Depth 3 | Set-Content -Path $paramsFile -Encoding UTF8
+    
+    # Deploy stack using JSON parameters file
     aws cloudformation $action `
         --stack-name $stackName `
         --template-body file://aws/cloudformation-ecs.yaml `
-        --parameters `
-            ParameterKey=VpcId,ParameterValue=$vpcId `
-            ParameterKey=SubnetIds,ParameterValue=`"$subnetIds`" `
-            ParameterKey=StreamlitImageUri,ParameterValue=$AccountId.dkr.ecr.$Region.amazonaws.com/tds-streamlit:$Environment `
-            ParameterKey=ApiImageUri,ParameterValue=$AccountId.dkr.ecr.$Region.amazonaws.com/tds-api:$Environment `
+        --parameters file://$paramsFile `
         --capabilities CAPABILITY_IAM `
         --region $Region
     
+    # Clean up temp file
+    Remove-Item -Path $paramsFile -Force -ErrorAction SilentlyContinue
+    
     Write-Info "Waiting for stack operation to complete..."
-    $waitAction = $action -replace "-stack", ""
-    aws cloudformation wait "stack-$waitAction-complete" --stack-name $stackName --region $Region
+    aws cloudformation wait $waitCommand --stack-name $stackName --region $Region
     
     # Get outputs
     $albUrl = aws cloudformation describe-stacks --stack-name $stackName --query "Stacks[0].Outputs[?OutputKey=='LoadBalancerURL'].OutputValue" --output text --region $Region

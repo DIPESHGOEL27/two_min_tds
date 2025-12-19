@@ -200,9 +200,9 @@ Resources:
     Type: AWS::ECS::Cluster
     Properties:
       ClusterName: tds-challan-cluster
-      CapacityProviders:
-        - FARGATE
-        - FARGATE_SPOT
+      ClusterSettings:
+        - Name: containerInsights
+          Value: enabled
 
   # CloudWatch Log Group
   LogGroup:
