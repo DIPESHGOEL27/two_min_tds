@@ -57,11 +57,22 @@ tests/                  - Pytest test suite
 
 ## Critical Business Rules
 
-1. **Sum Check**: `Tax_A + Tax_B + Tax_C + Tax_D + Tax_E + Tax_F` must equal `Total Amount` within ±1.0 rupee tolerance
+1. **Sum Check**: `Tax + Surcharge + Cess + Interest + Penalty + Fee u/s 234E` must equal `Total Amount` within ±1.0 rupee tolerance
 2. **TAN Format**: Must match regex `^[A-Z]{4}[0-9]{5}[A-Z]$`
 3. **Date Format**: Output as ISO format `YYYY-MM-DD`
 4. **Deduplication**: Hash of `CIN + Challan No + Date of Deposit` detects duplicates
 5. **Confidence Threshold**: Records with confidence < 0.85 require manual review
+
+## Tax Breakup Column Mapping
+
+| Code | Column Name | Description |
+|------|-------------|-------------|
+| A | Tax | Tax amount |
+| B | Surcharge | Surcharge amount |
+| C | Cess | Cess amount |
+| D | Interest | Interest amount |
+| E | Penalty | Penalty amount |
+| F | Fee u/s 234E | Fee under section 234E |
 
 ## Expected Test Data
 

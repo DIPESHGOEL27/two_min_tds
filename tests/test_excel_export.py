@@ -162,12 +162,12 @@ class TestExcelContent:
         df = pd.read_excel(output_path, sheet_name="TDS Challans")
 
         # All tax columns should be present
-        tax_cols = ["Tax_A", "Tax_B", "Tax_C", "Tax_D", "Tax_E", "Tax_F"]
+        tax_cols = ["Tax", "Surcharge", "Cess", "Interest", "Penalty", "Fee u/s 234E"]
         for col in tax_cols:
             assert col in df.columns
 
-        # Tax_A should equal total for sample record 1
-        assert abs(df.iloc[0]["Tax_A"] - 19395.0) <= 0.01
+        # Tax should equal total for sample record 1
+        assert abs(df.iloc[0]["Tax"] - 19395.0) <= 0.01
 
     def test_source_file_preserved(self, sample_record_1, temp_dir):
         """Test source file name is preserved."""

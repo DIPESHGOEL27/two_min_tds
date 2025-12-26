@@ -244,12 +244,12 @@ def display_record_editor(record: ChallanRecord, idx: int):
 
     with col2:
         st.write("**Tax Breakup**")
-        new_tax_a = st.number_input("Tax (A)", value=float(record.tax_breakup.tax_a), key=f"taxa_{idx}")
-        new_tax_b = st.number_input("Surcharge (B)", value=float(record.tax_breakup.tax_b), key=f"taxb_{idx}")
-        new_tax_c = st.number_input("Cess (C)", value=float(record.tax_breakup.tax_c), key=f"taxc_{idx}")
-        new_tax_d = st.number_input("Interest (D)", value=float(record.tax_breakup.tax_d), key=f"taxd_{idx}")
-        new_tax_e = st.number_input("Penalty (E)", value=float(record.tax_breakup.tax_e), key=f"taxe_{idx}")
-        new_tax_f = st.number_input("Fee 234E (F)", value=float(record.tax_breakup.tax_f), key=f"taxf_{idx}")
+        new_tax_a = st.number_input("A - Tax", value=float(record.tax_breakup.tax_a), key=f"taxa_{idx}")
+        new_tax_b = st.number_input("B - Surcharge", value=float(record.tax_breakup.tax_b), key=f"taxb_{idx}")
+        new_tax_c = st.number_input("C - Cess", value=float(record.tax_breakup.tax_c), key=f"taxc_{idx}")
+        new_tax_d = st.number_input("D - Interest", value=float(record.tax_breakup.tax_d), key=f"taxd_{idx}")
+        new_tax_e = st.number_input("E - Penalty", value=float(record.tax_breakup.tax_e), key=f"taxe_{idx}")
+        new_tax_f = st.number_input("F - Fee u/s 234E", value=float(record.tax_breakup.tax_f), key=f"taxf_{idx}")
 
         tax_sum = new_tax_a + new_tax_b + new_tax_c + new_tax_d + new_tax_e + new_tax_f
         st.info(f"Tax Sum: ₹{tax_sum:,.2f}")
@@ -538,7 +538,7 @@ def main():
             # Column schema info
             with st.expander("📋 Excel Column Schema"):
                 schema_data = [
-                    {"Column": col, "Type": "string" if col not in ["Total Amount", "Tax_A", "Tax_B", "Tax_C", "Tax_D", "Tax_E", "Tax_F", "Row Confidence"] else "number"}
+                    {"Column": col, "Type": "string" if col not in ["Total Amount", "Tax", "Surcharge", "Cess", "Interest", "Penalty", "Fee u/s 234E", "Row Confidence"] else "number"}
                     for col in EXCEL_COLUMNS
                 ]
                 st.dataframe(pd.DataFrame(schema_data), use_container_width=True)
