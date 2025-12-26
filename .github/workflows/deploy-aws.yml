@@ -1,13 +1,17 @@
 name: Deploy to AWS ECS
 
+# Disabled: AWS infrastructure (ECS cluster, service) must be created first
+# Uncomment and configure when AWS infrastructure is ready
+# See AWS_DEPLOYMENT.md for setup instructions
+
 on:
-  push:
-    branches:
-      - main
-      - production
-  pull_request:
-    branches:
-      - main
+  # push:
+  #   branches:
+  #     - main
+  #     - production
+  # pull_request:
+  #   branches:
+  #     - main
   workflow_dispatch:
     inputs:
       environment:
